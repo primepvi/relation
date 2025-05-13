@@ -11,11 +11,12 @@ experimenting with logic programming ideas.
 
 ## ✨ Features
 
-- Define named relations with typed schema (keys).
-- Populate relations with rows of data.
-- Project specific keys (columns).
-- Fluent method chaining (like `.populate().projection()`).
-- Friendly error messages and schema validation.
+- Define named **relations** with strongly-typed **schemas**
+- Compose **rows** using column definitions that validate types
+- Perform operations like `.project()` to select specific attributes
+- Access schema keys as attributes (e.g. `users.name`)
+- Fluent API with method chaining
+- Helpful error messages for debugging
 
 ---
 
@@ -27,22 +28,24 @@ experimenting with logic programming ideas.
 
 ## 📚 Examples
 
-```python
-from relation import Relation
+```py
+from relations import Relation, Key
 
-# Create a relation with schema (name, age)
-users = (
-    Relation("users", ("name", "age"))
-    .populate([
-        ("Carlos", 15),
-        ("Lucas", 18),
-        ("Maria", 22),
-    ])
-)
+# Define a relation with typed schema
+users = Relation("users", [
+    Key("name", str),
+    Key("age", int)
+])
 
-# Project only the 'name' column
-user_names = users.projection(("name",))
+# Populate the relation with typed rows
+users = users.populate([
+    users.row({ "name": "Carlos", "age": 19 }),
+    users.row({ "name": "Robersvaldo", "age": 45 }),
+])
 
-print(user_names.rows)
-# Output: [('Carlos',), ('Lucas',), ('Maria',)]
+# Project only the 'age' column
+ages = users.project([users.age])
+
+# Output: [Row(age=19), Row(age=18)]
+print(ages._rows)
 ```

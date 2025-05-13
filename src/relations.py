@@ -1,38 +1,44 @@
+from fields import Column, Key, Row
+
 class Relation:
-    def __init__(self, name: str, keys: tuple[str]):
-        self.name = name
-        self.keys = keys
-        self.rows = []
+    def __init__(self, name: str, keys: list[Key]):
+        self._name = name
+        self._keys = keys
+        self._rows = []
+        self._keymap = {k.name: k for k in keys}
 
-    def _isvalid_row(self, row: tuple[any]):
-        if len(self.keys) == 1:
-            return True
-        return isinstance(row, tuple) and len(row) == len(self.keys)
+    def __getattr__(self, attr) -> Key:
+        if attr in self._keymap:
+            return self._keymap[attr]
+        raise AttributeError(f"Relation '{self._name}' has no attribute '{attr}'.")
 
-    def _isvalid_key(self, key: str):
-        return key in self.keys
+    def __getitem__(self, key) -> Key | None:
+        return self._keymap[key]
 
-    def populate(self, rows: list[tuple[any]]):
-        for row in rows:
-            if not self._isvalid_row(row):
-                raise TypeError(
-                    f"[{self.name}.populate] Invalid row: {row}. Expected a tuple with {len(self.keys)} elements matching keys {self.keys}."
-                )
-        self.rows = rows
+    def to_dict(self) -> dict[str, Key]:
+        return { k.name: k for k in self._keys }
+    
+    def col(self, key: str, value: any):
+        return Column(self.to_dict(), self._name, key, value)
+    
+    def row(self, row: dict):
+        cols = [self.col(k, v) for k, v in row.items()]
+        return Row(cols)
+
+    def populate(self, rows: list[Row]):
+        self._rows = rows
         return self
 
-    def projection(self, keys: tuple[str]):
-        for key in keys:
-            if not self._isvalid_key(key):
-                raise KeyError(
-                    f"[{self.name}.projection] Invalid key: '{key}' does not exist in schema {self.keys}."
-                )
+    def project(self, keys: list[Key]):
+        schema_dict = self.to_dict()
 
-        rows = [
-            tuple(row[i] for i, key in enumerate(self.keys) if key in keys)
-            for row in self.rows
-        ]
-        
-        relation = Relation(self.name, keys)
-        relation.populate(rows)
-        return relation
+        for key in keys:
+            if not isinstance(key, Key):
+                raise TypeError(f"[{self._name}.project] Expected Key instance, got {type(key).__name__}")
+            if key.name not in schema_dict:
+                raise KeyError(f"[{self._name}.project] Invalid key: '{key.name}' does not exist in this relation.")
+
+        rows = [row.pick([key.name for key in keys]) for row in self._rows]
+        projected_keys = [k for k in self._keys if k.name in {key.name for key in keys}]
+
+        return Relation(self._name, projected_keys).populate(rows)

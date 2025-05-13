@@ -1,8 +1,13 @@
-from relations import Relation
+from relations import Relation, Key
 
-users = Relation("users", ["name", "age"])
-users.populate([("Carlos", 15), ("Lucas", 18), ("Maria", 22)])
+users = Relation("users", [
+    Key("name", str),
+    Key("age", int) 
+])
 
-print(users.rows)
-print(users.projection(("name",)).rows)
-print(users.projection(("age",)).rows)
+users = users.populate([
+    users.row({ "name": "Pedro", "age": 19 }),
+    users.row({ "name": "Julia", "age": 18 })
+]).project([users.name])
+
+print(users._rows)
