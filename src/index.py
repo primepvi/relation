@@ -1,4 +1,4 @@
-from src.relations import Relation
+from relations import Relation
 
 users = Relation("users", ["name", "age"])
 users.populate([("Carlos", 15), ("Lucas", 18), ("Maria", 22)])
